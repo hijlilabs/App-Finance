@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Finance AI App</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React Libraries -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <!-- Babel to compile JSX in the browser -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+    <div id="root" class="bg-gray-200"></div>
+
+    <script type="text/babel">
+        // This interval checker ensures that the React app only tries to run
+        // after the core React libraries have been loaded.
+        const checkInterval = setInterval(() => {
+            if (window.React && window.ReactDOM) {
+                clearInterval(checkInterval); // Stop the checker once libs are found
+                initializeApp(); // Start the app
+            }
+        }, 100); // Check every 100ms
+
+        // This function contains the entire React App. It will only be called
+        // once the checkInterval confirms that all libraries are ready.
+        function initializeApp() {
+            const { useState, useEffect, useRef } = React;
+            
+            // --- INLINE SVG ICONS (Replaces Lucide external dependency) ---
+            const Bot = ({ className }) => (
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                    <path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/>
+                </svg>
+            );
+            const Send = ({ className }) => (
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                    <path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>
+                </svg>
+            );
+            const CheckCircle = ({ className }) => (
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/>
+                </svg>
+            );
+            const Target = ({ className }) => (
+                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                    <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>
+                </svg>
+            );
+            
+            // --- MOCK FINANCIAL DATA ---
+            const mockFinancialData = {
+              userName: 'Vikas',
+              totalMonthlySpend: 45800,
+              transactions: [
+                { category: 'Food & Dining', amount: 14500, date: '2025-09-12' },
+                { category: 'Shopping', amount: 8200, date: '2025-09-10' },
+                { category: 'Transport', amount: 5600, date: '2025-09-11' },
+                { category: 'Entertainment', amount: 9500, date: '2025-09-05' }, // Friday
+                { category: 'Utilities', amount: 3000, date: '2025-09-01' },
+                { category: 'Groceries', amount: 5000, date: '2025-09-08' },
+              ],
+              habits: {
+                highSpendCategory: 'Food & Dining',
+                weekendSpike: {
+                    day: 'Friday',
+                    category: 'Entertainment',
+                    avgAmount: 2375 // Average of 4 Fridays
+                }
+              }
+            };
+            
+            // --- AI PERSONALITY ANALYSIS ---
+            const analyzePersonality = (data) => {
+                const foodPercentage = (data.transactions.find(t => t.category === 'Food & Dining').amount / data.totalMonthlySpend) * 100;
+                
+                if (foodPercentage > 30) {
+                    return {
+                        trait: "The Explorer 🗺️",
+                        description: "You love discovering new tastes and experiences. Your spending shows a passion for enjoying life's flavors, especially when it comes to dining out."
+                    };
+                } else if (data.habits.weekendSpike.avgAmount > 2000) {
+                    return {
+                        trait: "The Socialite 🕺",
+                        description: "You thrive on social connections. Your spending patterns suggest you energize your weekends by connecting with friends and enjoying the city's vibe."
+                    };
+                }
+                return {
+                    trait: "The Disciplined Planner 🧠",
+                    description: "You're in control of your finances. Your spending is balanced, showing a thoughtful approach to budgeting and saving."
+                };
+            };
+            
+            const App = () => {
+              const [messages, setMessages] = useState([]);
+              const [input, setInput] = useState('');
+              const [isBotTyping, setIsBotTyping] = useState(false);
+              const [userGoal, setUserGoal] = useState(null);
+              const [showExpenseChart, setShowExpenseChart] = useState(false);
+            
+              const personality = analyzePersonality(mockFinancialData);
+              const chatContainerRef = useRef(null);
+            
+              useEffect(() => {
+                // Initial welcome sequence
+                addBotMessage(`Hi ${mockFinancialData.userName}, Welcome to your personal Finance Machine! 🤖✨`, 500);
+                addBotMessage(`Based on your spending, I think your financial personality is **${personality.trait}**.`, 1500);
+                addBotMessage(personality.description, 2500);
+                addBotMessage({
+                    text: "Would you like to see a breakdown of why I think so?",
+                    options: ["Yes, show me", "No, skip ahead"]
+                }, 3500);
+              }, []);
+              
+              useEffect(() => {
+                // Auto-scroll logic
+                if (chatContainerRef.current) {
+                    chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+                }
+              }, [messages, isBotTyping]);
+            
+            
+              const addBotMessage = (message, delay = 1000) => {
+                setIsBotTyping(true);
+                setTimeout(() => {
+                    setMessages(prev => [...prev, { sender: 'bot', ...((typeof message === 'string') ? {text: message} : message) }]);
+                    setIsBotTyping(false);
+                }, delay);
+              };
+              
+              const addUserMessage = (text) => {
+                  const newMessages = [...messages, { sender: 'user', text }];
+                  setMessages(newMessages);
+                  handleBotResponse(text);
+              };
+            
+              const handleOptionClick = (option) => {
+                  addUserMessage(option);
+              };
+            
+              const handleBotResponse = (userText) => {
+                  // Remove options from previous messages
+                  setMessages(prev => prev.map(msg => ({ ...msg, options: null })));
+            
+                  if (userText.toLowerCase().includes("yes")) {
+                      const spike = mockFinancialData.habits.weekendSpike;
+                      addBotMessage(`I noticed a pattern: you have a spending spike on **${spike.day}s**, mostly on **${spike.category}**.`, 1000);
+                      addBotMessage(`On average, you spend around **₹${spike.avgAmount.toLocaleString()}** on these days. That's over ₹1,20,000 a year! 🤯`, 2000);
+                      addBotMessage({
+                          text: `This is a great opportunity! We could turn this spending into savings. Want to set a small goal to save on one of these days this month?`,
+                          options: ["Let's do it! 🎯", "Tell me more first"]
+                      }, 3500);
+                  } else if (userText.toLowerCase().includes("no")) {
+                        addBotMessage("Alright! What's on your mind? Feel free to ask me about your spending, or we can set a new goal.", 1000);
+                  } else if (userText.toLowerCase().includes("let's do it")) {
+                        addBotMessage("Awesome! What should we name this goal? (e.g., 'Goa Trip Fund', 'New Gadget Savings')", 1000);
+                  } else if (userText.toLowerCase().includes("tell me more")) {
+                      addBotMessage("By saving just one Friday's spend a month, you could save nearly ₹30,000 in a year. This can significantly boost your savings for something you really want!", 1000);
+                      addBotMessage({
+                          text: "Ready to give it a shot?",
+                          options: ["Let's do it! 🎯", "Maybe later"]
+                      }, 2500);
+                  } else {
+                    // Default response for goal setting
+                    if (messages.some(m => m.text && m.text.includes("name this goal"))) {
+                        const goal = { name: userText, saved: 0, target: mockFinancialData.habits.weekendSpike.avgAmount };
+                        setUserGoal(goal);
+                        addBotMessage(`Fantastic! Goal set: **"${goal.name}"**. I'll help you track your progress. Saving ₹${goal.target.toLocaleString()} is your first step!`, 1000);
+                        addBotMessage({
+                            text: "To get a better picture, would you like to see a visual chart of your expenses?",
+                            options: ["Show expense chart 📊", "Not right now"]
+                        }, 2500);
+                    } else if (userText.toLowerCase().includes("show expense chart")) {
+                        setShowExpenseChart(true);
+                        addBotMessage("Here is the breakdown of your monthly spending. This can help identify more areas to save!", 1000);
+                    } else {
+                        addBotMessage("I'm still learning! You can ask me to 'show expenses' or 'set a goal'.", 1000);
+                    }
+                  }
+              };
+            
+            
+              const handleSend = () => {
+                if (input.trim()) {
+                  addUserMessage(input);
+                  setInput('');
+                }
+              };
+              
+              const GoalWidget = () => (
+                  <div className="bg-green-50 border-l-4 border-green-500 p-3 m-3 rounded-lg shadow-sm">
+                      <div className="flex items-center space-x-3">
+                        <Target className="w-6 h-6 text-green-600 flex-shrink-0" />
+                        <div>
+                          <p className="text-sm font-semibold text-green-800">{userGoal.name}</p>
+                          <p className="text-xs text-green-700">Target: ₹{userGoal.target.toLocaleString()}</p>
+                        </div>
+                        <CheckCircle className="w-5 h-5 text-green-500 ml-auto" />
+                      </div>
+                  </div>
+              );
+              
+              const ExpenseChart = () => {
+                  const total = mockFinancialData.totalMonthlySpend;
+                  const colors = ['bg-blue-400', 'bg-purple-400', 'bg-pink-400', 'bg-orange-400', 'bg-teal-400', 'bg-indigo-400'];
+                  return (
+                    <div className="bg-white rounded-lg border p-4 m-4">
+                         <h4 className="font-semibold text-center mb-3">Monthly Expense Breakdown</h4>
+                        <div className="space-y-2">
+                            {mockFinancialData.transactions.map((item, index) => (
+                                <div key={item.category}>
+                                    <div className="flex justify-between items-center text-sm mb-1">
+                                        <span className="text-gray-600">{item.category}</span>
+                                        <span className="font-medium">₹{item.amount.toLocaleString()}</span>
+                                    </div>
+                                    <div className="w-full bg-gray-200 rounded-full h-2.5">
+                                        <div className={`${colors[index % colors.length]} h-2.5 rounded-full`} style={{ width: `${(item.amount / total) * 100}%` }}></div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                  )
+              };
+            
+              return (
+                <div className="font-sans max-w-md mx-auto bg-gray-50 h-screen flex flex-col shadow-2xl rounded-lg">
+                  <div className="bg-gradient-to-r from-purple-600 to-blue-500 p-4 text-white">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-white/30 rounded-full flex items-center justify-center">
+                        <Bot className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-lg">Finance Machine</h3>
+                        <p className="text-xs opacity-80">Your Personal AI Finance Coach</p>
+                      </div>
+                    </div>
+                  </div>
+            
+                  {userGoal && <GoalWidget />}
+            
+                  <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-4 space-y-4">
+                    {messages.map((msg, index) => (
+                      <div key={index} className={`flex items-end gap-2 ${msg.sender === 'user' ? 'flex-row-reverse' : ''}`}>
+                        {msg.sender === 'bot' && 
+                          <div className="w-8 h-8 bg-gradient-to-br from-purple-400 to-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
+                            <Bot className="w-4 h-4 text-white" />
+                          </div>
+                        }
+                        <div className={`rounded-2xl p-3 max-w-xs md:max-w-md shadow-sm ${
+                          msg.sender === 'user' 
+                            ? 'bg-blue-500 text-white rounded-br-none' 
+                            : 'bg-white text-gray-800 rounded-bl-none'
+                        }`}>
+                          <p className="text-sm" dangerouslySetInnerHTML={{ __html: msg.text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }}></p>
+                          {msg.options && (
+                              <div className="mt-3 flex flex-col sm:flex-row gap-2">
+                                  {msg.options.map(opt => (
+                                      <button 
+                                        key={opt}
+                                        onClick={() => handleOptionClick(opt)}
+                                        className="w-full text-center bg-blue-100 text-blue-800 font-semibold px-4 py-2 rounded-full text-xs hover:bg-blue-200 transition-colors"
+                                      >
+                                          {opt}
+                                      </button>
+                                  ))}
+                              </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    {isBotTyping && (
+                        <div className="flex items-end gap-2">
+                            <div className="w-8 h-8 bg-gradient-to-br from-purple-400 to-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
+                                <Bot className="w-4 h-4 text-white" />
+                            </div>
+                            <div className="rounded-2xl p-3 max-w-xs bg-white text-gray-800 rounded-bl-none shadow-sm">
+                                <div className="flex items-center space-x-1">
+                                    <span className="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></span>
+                                    <span className="w-2 h-2 bg-gray-400 rounded-full animate-pulse delay-75"></span>
+                                    <span className="w-2 h-2 bg-gray-400 rounded-full animate-pulse delay-150"></span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+            
+                    {showExpenseChart && <ExpenseChart />}
+                  </div>
+            
+                  <div className="p-4 bg-white border-t">
+                    <div className="flex space-x-2">
+                      <input
+                        type="text"
+                        placeholder="Type your message..."
+                        className="flex-1 border border-gray-300 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+                      />
+                      <button 
+                        onClick={handleSend}
+                        className="bg-gradient-to-r from-purple-500 to-blue-500 text-white rounded-full p-3 hover:from-purple-600 hover:to-blue-600 transition-all duration-300 transform hover:scale-110"
+                      >
+                        <Send className="w-5 h-5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            };
+
+            const container = document.getElementById('root');
+            const root = ReactDOM.createRoot(container);
+            root.render(<App />);
+        }
+    </script>
+</body>
+</html>
+
